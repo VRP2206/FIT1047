@@ -1,0 +1,46 @@
+start, load data_address       /load starting adress of data list
+       store ptr               /save to pointer variable
+       jump loop               /jumps to main loop
+       ptr, hex 0              /pointer storage 
+loop,  LoadI ptr               /load data at the address stored in pointer
+       SkipCond 400            /if data != 0 program continues
+       jump process                   
+       jump end                /if ptointer is pointing to data zero, program ends      
+hex 0   					   /useless        
+hex 0   					   /useless         
+hex 0   					   /useless         
+process,     jns submod38      /call procedure mod38; return the remainder after division for any number by 38
+	         Output                      
+	         load one               
+	         add ptr                            
+	         store ptr         /increment pointer by 1        
+	         jump loop         /jump back to main loop to process next number in data_list       
+submod38,    jnS start         /store return address and jumps to start   
+		     SkipCond 800      /if AC > 0(I.e., if data value is positve), skip next line   
+		     jump fixneg                  
+subloop,     subt TWENTYSIX    /if number is positive, subloop will mod value by divisor (dec)38             
+	         SkipCond 000        /this is done by subtracting (dec) 38 till the number become negative
+	         jump subloop        /then ommiting the last subtraction by adding (dec) 38        
+			 add TWENTYSIX                   
+	 		 JumpI submod38    /return        
+negfixed,    SkipCond 400      /if number is negatative, fixneg will add (dec) 38 till value becomes positive
+	         Subt TWENTYSIX      /then negfixed will omit the last addition by subtracting (dec) 38 to get the remainder after division for a negative value     
+	         JumpI submod38    /return      
+fixneg,      add TWENTYSIX     /Add hex 26 till number >=0       
+	         SkipCond 800           
+	         jump fixneg                  
+	         jump negfixed     /jump to negfix once number is positive to be mod by dec 38    
+hex 0                     
+hex 0                     
+end, Halt                      /progam end 
+one, hex 1                     
+data_address, hex 25           /contain address location of where data list starts      
+dATA_LIST,    hex FAD6         /starts of data list
+	          hex 0A37                  
+	          hex FEF0                  
+	          hex FC85                  
+	          hex 01F5                  
+	          hex 01EE                  
+	          hex 0            /end of data list           
+TWENTYSIX,    hex 26           /value of divided by for the modding function
+

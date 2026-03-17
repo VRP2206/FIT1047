@@ -1,0 +1,1184 @@
+/////////////////////////////////////////////////////////////////////////
+//// This is the template for FIT1047 S2 2025, Assignment 2 Part 3.  ////
+//// Please follow the assignment specification published on Moodle. ////
+//// You must use this template for your code.                       ////
+/////////////////////////////////////////////////////////////////////////
+
+/ This is the main program. You can un-comment the different parts
+/ to test your subroutines, depending on which parts of the assignment
+/ you attempt to complete.
+
+/ Un-comment the next line if you have implemented the SubClearDisplay subroutine. (Task 3.1)
+/JnS SubClearDisplay
+
+/ Un-comment the next block to test your SubInputString subroutine. (Task 3.2)
+/Load StringAddr
+/Store InputStringAddr
+/JnS SubInputString
+
+/ Un-comment the next block to test your SubPaintChar subroutine. (Task 3.3)
+/Load FontAddr
+/Add SIXTYFOUR 
+/Store PaintCharCharacter 
+/Load Display22 
+/Store PaintCharDisplay 
+/JnS SubPaintChar 
+
+/ Un-comment the next block to test your SubPaintString subroutine. (Task 3.4)
+Load StringAddr
+Store StringAddrForPainting
+JnS SubPaintString/
+
+/ This is the end of the main program.
+Halt
+
+
+//////////////////////////////////////////////////////////////////
+/////// Add your subroutines below this comment.           ///////
+//////////////////////////////////////////////////////////////////
+
+/NOTE: {comments structure}
+/ --- [comment] ---   | this is brief decsription of what the next block of code do
+/ [comment]           | This is individual line of code comment or more indepth description of what the code block 
+/ --------------------------------  | Subroutine separation
+
+/ --- constant used through the program; ---
+WHITE,          HEX FFFF
+STARTDISP,      HEX 0F00
+COUNT256,       DEC 256
+THIRTYTWO,      DEC 32
+TWELVE,         DEC 12
+EIGHT,          DEC 8
+FOUR,           DEC 4
+
+ASCII_A,        HEX 041
+ASCII_Z,        HEX 05A
+ASCII_a,        HEX 061
+ASCII_z,        HEX 07A
+DELAYCONST,     DEC 1500   
+
+
+/-----------------------------------------------------------
+/ Add your subroutine SubClearDisplay here. (Task 3.1)
+/ This subroutine sets F00 to FFF to white
+SubClearDisplay,   HEX 0
+
+		    / --- PTR1 = STARTDISP ---
+		    Load    STARTDISP
+		    Store   PTR1
+		
+		    / --- COUNT = 256 Pixels ---
+		    Load    COUNT256
+		    Store   COUNT
+
+CD_Loop,    Load    WHITE                 / *PTR1 = WHITE
+		    StoreI  PTR1
+		
+		    Load    PTR1                  / PTR1 incremented by 1
+		    Add     ONE
+		    Store   PTR1
+		
+		    Load    COUNT                 / COUNT decremented by 1 
+		    Subt    ONE
+		    Store   COUNT
+		
+		    Load    COUNT                 / if COUNT != 0, loop
+		    SkipCond 400                  / skip next if AC == 0
+		    Jump    CD_Loop
+
+            JumpI   SubClearDisplay
+			
+/ --- Variables for the subroutine SubClearDisplay --- 
+PTR1,           HEX 0
+COUNT,          HEX 0
+
+/-----------------------------------------------------------------
+/ Add your subroutine SubInputString here. (Task 3.2)
+/ Parameter of SubInputString
+InputStringAddr,   HEX 0
+SubInputString,    Hex 0 
+
+
+ReadLoop,       Input                     / read one character from keyboard
+			    Store   SI_CHAR           / save character in SI_CHAR
+	
+		    	/ --- Check if character is uppercase (A to Z) ---
+			    Load    SI_CHAR
+			    Subt    ASCII_A
+			    SkipCond 000              / skip next if char < 'A'
+			    Jump    CapHighCheck
+			    Jump    StoreDelimiter    / if character < 'A', so not alphabetic therefor it is a delimiter
+
+CapHighCheck,   Load    SI_CHAR
+			    Subt    ASCII_Z
+			    SkipCond 800              / skip next if char > 'Z'
+			    Jump    StoreAlphabet     / in range A to Z
+			    Jump    CheckLower        / else maybe lowercase
+
+/ --- Check if character is lowercase (a..z) ---
+CheckLower,     Load    SI_CHAR
+			    Subt    ASCII_a
+			    SkipCond 000              / skip next if char < 'a'
+			    Jump    LowerHighCheck
+			    Jump    StoreDelimiter    / if char < 'a' and char > Z, so not alphabetic therefor it is a delimiter
+
+LowerHighCheck,	Load    SI_CHAR
+				Subt    ASCII_z
+				SkipCond 800              / skip next if char > 'z'
+				Jump    ConvertToUpper    / valid lowercase
+				Jump    StoreDelimiter    / not alphabetic
+
+/ --- Convert lowercase to uppercase ---
+ConvertToUpper, Load    SI_CHAR
+			    Subt    THIRTYTWO         / ASCII offset between 'a' and 'A'
+			    Store   SI_CHAR
+			    Jump    StoreAlphabet
+
+/ --- Store the alphabetic character ---
+StoreAlphabet,  Load    SI_CHAR
+			    StoreI  InputStringAddr   / write character into string
+			
+			    Load    InputStringAddr
+			    Add     ONE               / move pointer forward
+			    Store   InputStringAddr
+			
+			    Jump    ReadLoop          / read next character
+
+/ --- Store delimiter and terminate string ---
+StoreDelimiter, Load    SI_CHAR
+			    StoreI  InputStringAddr   / store the delimiter
+			    JumpI   SubInputString    / return to caller
+				
+/ --- Variables for the subroutine SubInputString ---    
+SI_CHAR,   HEX 0   
+
+/--------------------------------------------------------------------------------
+/ Add your subroutine for painting a character here. (Task 3.3)
+/ Parameters of SubPaintChar
+PaintCharCharacter, HEX 0
+PaintCharDisplay, HEX 0  
+/ This subroutine paints a character on the display
+SubPaintChar, HEX 0 
+
+            jns SubClearDisplay
+		    
+		    Load    EIGHT
+		    Store   PC_RowCnt             / Set row counter = 8
+
+RowLoop,    Load    FOUR                  / Reset column counter = 4
+            Store   PC_ColCnt
+
+ColLoop,    LoadI   PaintCharCharacter    / Copy one pixel from character to print -> display
+		    StoreI  PaintCharDisplay
+		
+		    / --- Advance character pixel ---
+		    Load    PaintCharCharacter
+		    Add     ONE
+		    Store   PaintCharCharacter
+		
+		    / --- Advance display pixel ---
+		    Load    PaintCharDisplay
+		    Add     ONE
+		    Store   PaintCharDisplay
+		
+		    / --- Decrement column counter ---
+		    Load    PC_ColCnt
+		    Subt    ONE
+		    Store   PC_ColCnt
+		
+		    / --- Loop until 4 pixels written ---
+		    Load    PC_ColCnt
+		    SkipCond 400                  / skip next if 0
+		    Jump    ColLoop
+		
+		    / --- Finished one row of 4 -> skip ahead 12 in display ---
+		    Load    PaintCharDisplay
+		    Add     TWELVE
+		    Store   PaintCharDisplay
+		
+		    / --- Decrement row counter ---
+		    Load    PC_RowCnt
+		    Subt    ONE
+		    Store   PC_RowCnt
+		
+		    / --- Loop until 8 rows done ---
+		    Load    PC_RowCnt
+		    SkipCond 400                  / skip if 0
+		    Jump    RowLoop
+		
+		    JumpI   SubPaintChar
+
+/ --- Variables for the subroutine SubPaintChar ---
+PC_RowCnt,    HEX 0                       / number of rows (8)
+PC_ColCnt,    HEX 0                       / number of columns (4)
+
+
+/--------------------------------------------------------------------------------
+/ Add your subroutine for painting a string of characters. (Task 3.4)
+StringAddrForPainting, HEX 0
+SubPaintString,        HEX 0
+
+/ --- call subroutine SubInputString to get string to be displayed ---
+Load StringAddr
+Store InputStringAddr
+JnS SubInputString
+
+/ --- Iterate for the string to be displayed and take a single character per iteration ---
+NextCharLoop,   LoadI StringAddrForPainting
+			    Store PS_CHAR
+				subt ASCII_A
+			    SkipCond 000              / If char < A ->stop
+			    Jump CHECKALPHA
+				JUMP EndPaintString
+CHECKALPHA,     load PS_CHAR
+				Subt ASCII_Z
+				SkipCond 800              / IF char > Z -> STOP
+				JUMP DoChar				
+			    Jump EndPaintString
+
+DoChar, JnS SubClearDisplay
+
+	    / --- Compute font address for this character ---
+		Load    PS_CHAR
+		Subt    ASCII_A                   / get index 0–25; [A = 0, B = 1, ..., Z = 25]
+		Store   PS_INDEX
+	
+	    / --- Multiply index × 32 inline ---
+		Load   PS_INDEX
+		Add    PS_INDEX       / ×2
+		store  PS_INDEX
+		Load   PS_INDEX
+		Add    PS_INDEX       / ×4
+		store  PS_INDEX
+		Load   PS_INDEX
+		Add    PS_INDEX       / ×8
+		store  PS_INDEX
+		Load   PS_INDEX
+		Add    PS_INDEX       / ×16
+		store  PS_INDEX
+		Load   PS_INDEX
+		Add    PS_INDEX       / ×32
+		store  PS_INDEX
+		Load   PS_INDEX
+		Add    FontAddr
+		Store  PaintCharCharacter         / (Task 3.3 parameter)
+	
+	    / --- Set display address ---
+		Load    Display22                 / Use Display22 to display it in the top left of screen
+		Store   PaintCharDisplay
+	
+	    / --- Paint char using Task 3.3 ---
+		JnS     SubPaintChar
+	
+	    / --- Delay loop (~1 sec visible) ---
+		Load    DELAYCONST
+		Store   PS_DELAY
+		
+DelayLoop,  Load    PS_DELAY
+		    Subt    ONE
+		    Store   PS_DELAY
+		    SkipCond 400
+		    Jump    DelayLoop
+
+		    / --- Advance pointer -> next char ---
+		    Load    StringAddrForPainting
+		    Add     ONE
+		    Store   StringAddrForPainting
+		    Jump    NextCharLoop
+
+EndPaintString, JumpI   SubPaintString
+
+/ --- Variables for the subroutine SubPaintString ---
+PS_INDEX,  HEX 0
+PS_CHAR,   HEX 0
+PS_DELAY,  HEX 0
+
+
+//////////////////////////////////////////////////////////////////
+/////// You MUST NOT edit anything below this line.        ///////
+/////// The rest of the file contains data for testing     ///////
+/////// and the font data. You MUST NOT change anything    ///////
+/////// below.                                             ///////
+//////////////////////////////////////////////////////////////////
+
+/ Here are some data labels that are useful for testing the code.
+ONE, DEC 1
+Display22, HEX 0F11 
+SIXTYFOUR, DEC 64
+
+/ This is the "font", the memory that stores character data for the display.
+/ The characters are stored in the order A-Z.
+/ Each character is 4 pixels wide and 8 pixels high.
+/ The data for each character is stored row by row, with each pixel
+/ being represented as ONE word that is either FFFF (white) or 0000 (black).
+
+FontAddr, ADR FontStart
+FontStart, 	HEX FFFF  / Start of character A 
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character B
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character C
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character D
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character E
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character F
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character G
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character H
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character I
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character J
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character K
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character L
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character M
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character N
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character O
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character P
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character Q
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character R
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX FFFF  / Start of character S
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character T
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character U
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character V
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character W
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character X
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character Y
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			
+			HEX 0000  / Start of character Z
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX 0000
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+			HEX FFFF
+
+/ This is an example of an arrangement of the characters in the memory
+/ In this assignment, you have to convert the input alphabets to upper cases, and store them to the memory,
+/ starting from memory location of InputString.
+/ The delimiter can be any non-alphabetic character.
+StringAddr, ADR InputString
+InputString, HEX 06D    / 'm' (ASCII code)
+             HEX 061    / 'a'
+             HEX 072    / 'r'
+             HEX 069    / 'i'
+             HEX 065    / 'e'
+             HEX 0    / delimiter
